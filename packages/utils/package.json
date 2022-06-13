@@ -1,0 +1,13 @@
+{
+  "name": "@Biu/utils",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "buildOptions": {
+    "name": "BiuUtils",
+    "formats": [
+      "cjs",
+      "esm-bundler"
+    ]
+  }
+}
