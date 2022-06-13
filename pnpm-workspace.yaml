@@ -1,0 +1,3 @@
+# monorepo: 用一个 git 仓库来管理多个子项目，所有的子项目都存放在根目录的packages目录下，一个子项目就代表一个package
+packages:
+ - 'packages/*'
