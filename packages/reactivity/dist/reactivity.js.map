@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/index.ts"],
+  "sourcesContent": ["import { isObject } from \"@Biu/utils\"\r\nconsole.log('\u563B\u563B')"],
+  "mappings": ";;AACA,UAAQ,IAAI,cAAI;",
+  "names": []
+}
