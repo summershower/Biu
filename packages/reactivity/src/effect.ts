@@ -1,4 +1,4 @@
-let activeEffect; // 一个全局临时变量，用来存储当前调用的effect函数。每次调用effect函数，都会把自身赋值到这个变量，这样在Proxy对象的get()方法中就可以根据这个值是否为空，来判断是不是由effect函数触发的读取行为，进而决定是否需要进行依赖收集。
+let activeEffect: Function; // 一个全局临时变量，用来存储当前调用的effect函数。每次调用effect函数，都会把自身赋值到这个变量，这样在Proxy对象的get()方法中就可以根据这个值是否为空，来判断是不是由effect函数触发的读取行为，进而决定是否需要进行依赖收集。
 
 /**
  * effect接收一个函数参数，我们称这个参数为副作用函数。
@@ -6,7 +6,7 @@ let activeEffect; // 一个全局临时变量，用来存储当前调用的effec
  * 之后在每次该属性值数据发生变化时，都会重新执行其依赖数组的所有副作用函数，因此此函数将被重新触发。
  */
 export function effect(fn: Function) {
-    const effectFn = ()=>{
+    const effectFn = () => {
         activeEffect = effectFn;
         return fn()
     }
@@ -40,15 +40,17 @@ export function track(target: Object, key: String | Symbol) {
     if (!activeEffect) return
 
     // 先从targetMap中取出对应的Proxy对象的记录
-    const depsMap = targetMap.get(target)
+    let depsMap = targetMap.get(target)
     // 如果这个Proxy对象还没有被记录过，那我们先给他创建一个空的存进去
-    if (!depsMap) targetMap.set(target, new Map())
+    if (!depsMap) {
+        targetMap.set(target, depsMap = new Map())
+    }
 
     // 再从Proxy对象记录中取出对应属性值的记录
-    const deps = depsMap.get(key)
+    let deps = depsMap.get(key)
     // 该属性值没有被记录过的话，那继续给他新建一个
     if (!deps) {
-        depsMap.set(key, new Set())
+        depsMap.set(key,deps =  new Set())
     }
 
     // 把这次所使用的effect函数存到该属性值的set数组去即可
