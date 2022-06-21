@@ -27,7 +27,7 @@ build({
     bundle: true,
     sourcemap: true,
     format: outputFormat,
-    globalName: packageJson.buildOptions?.name,
+    globalName: packageJson.buildOptions.name,
     platform: format === 'cjs' ? 'node' : 'browser',
     watch: {
         onRebuild(error) {

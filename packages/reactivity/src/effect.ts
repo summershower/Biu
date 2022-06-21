@@ -1,4 +1,5 @@
-let activeEffect: Function; // 一个全局临时变量，用来存储当前调用的effect函数。每次调用effect函数，都会把自身赋值到这个变量，这样在Proxy对象的get()方法中就可以根据这个值是否为空，来判断是不是由effect函数触发的读取行为，进而决定是否需要进行依赖收集。
+let activeEffect: Function | null; // 一个全局临时变量，用来存储当前调用的effect函数。每次调用effect函数，都会把自身赋值到这个变量，这样在Proxy对象的get()方法中就可以根据这个值是否为空，来判断是不是由effect函数触发的读取行为，进而决定是否需要进行依赖收集。
+let effectStack: Function[] = []; // 当effect函数里又嵌套了effect函数时, 有可能出现里层的effect函数赋值到activeEffect并执行完毕以后, 清除了activeEffect的值, 导致外层函数读取Proxy值时无法被作为依赖收集的情况, 需要一个栈存储所有的effect函数
 
 /**
  * effect接收一个函数参数，我们称这个参数为副作用函数。
@@ -7,13 +8,22 @@ let activeEffect: Function; // 一个全局临时变量，用来存储当前调�
  */
 export function effect(fn: Function) {
     const effectFn = () => {
-        activeEffect = effectFn;
-        return fn()
+        // 使用try finally包裹，保证无论执行结果如何，最后都要清理掉全局的activeEffect变量
+        try {
+            activeEffect = effectFn;
+            // 先入栈暂存, 防止里层有effect函数,finally把外层的effect函数清除掉
+            effectStack.push(effectFn);
+            return fn()
+        }
+        finally {
+            // 执行完里层的effect时, 把自己出栈, 然后拿回外层的effect出来,重新赋值到activeEffect去
+            effectStack.pop();
+            activeEffect = effectStack[effectStack.length - 1] ?? null
+        }
     }
     effectFn();
     return effectFn;
 }
-
 
 /**
  * 创建一个WeakMap对象，用来存放每个属性值的依赖函数数组。
@@ -25,8 +35,7 @@ export function effect(fn: Function) {
  * }
  * 这样子，每次调用Proxy对象的某个属性时，就把里面存储副作用函数的Set数组拿出来遍历一次调用即可。
  */
-const targetMap = new WeakMap();
-
+const proxyObjectRecordMap = new WeakMap();
 
 /**
  * 跟踪器：收集依赖某个属性的effect函数的方法。跟踪器会在handler的get()方法中被调用。
@@ -39,18 +48,18 @@ export function track(target: Object, key: String | Symbol) {
      */
     if (!activeEffect) return
 
-    // 先从targetMap中取出对应的Proxy对象的记录
-    let depsMap = targetMap.get(target)
+    // 先从proxyObjectRecordMap中取出对应的Proxy对象的记录
+    let depsMap = proxyObjectRecordMap.get(target)
     // 如果这个Proxy对象还没有被记录过，那我们先给他创建一个空的存进去
     if (!depsMap) {
-        targetMap.set(target, depsMap = new Map())
+        proxyObjectRecordMap.set(target, depsMap = new Map())
     }
 
     // 再从Proxy对象记录中取出对应属性值的记录
     let deps = depsMap.get(key)
     // 该属性值没有被记录过的话，那继续给他新建一个
     if (!deps) {
-        depsMap.set(key,deps =  new Set())
+        depsMap.set(key, deps = new Set())
     }
 
     // 把这次所使用的effect函数存到该属性值的set数组去即可
@@ -60,9 +69,9 @@ export function track(target: Object, key: String | Symbol) {
 /**
  * 触发器：当某个属性值被修改时，会触发依赖该属性值的effect函数的方法。触发器会在handler的set()方法中被调用。
  */
-export function trigger(target: Object, key: String | Symbol) {
-    // 同理，先从targetMap中取出某个Proxy对象的记录
-    const depsMap = targetMap.get(target);
+export function trigger(target: Object, key: String | Symbol | number) {
+    // 同理，先从proxyObjectRecordMap中取出某个Proxy对象的记录
+    const depsMap = proxyObjectRecordMap.get(target);
     if (!depsMap) return;
 
     // 再从Proxy对象的记录中取出某个属性值的记录

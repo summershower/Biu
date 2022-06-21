@@ -3,10 +3,16 @@ import { effect } from './effect'
 
 const b = window as any;
 const a = reactive({
-    count: 1
+    a: 123,
+    b: 777
 });
 b.a = a;
 
+
+
 effect(() => {
-    console.log(b.a.count)
+    effect(() => {
+        console.log('里层', b.a.b)
+    })
+    console.log('外层', b.a.a)
 })
