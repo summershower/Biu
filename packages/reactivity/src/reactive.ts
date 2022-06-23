@@ -1,5 +1,6 @@
 import { isObject, isArray, hasChange } from '@Biu/utils'
 import { track, trigger } from './effect'
+import {IProxyTarget} from './types'
 
 const proxyMap = new WeakMap();
 
@@ -59,7 +60,7 @@ export function reactive(target: unknown): any {
                  * 如果对数组进行push等操作, length隐性改变了, 但因为不是直接操作属性名length,所以无法通知到对应依赖
                  * */
                 if (isArray(target) && ((<[]>target).length !== oldLength)) {
-                    trigger(target, length)
+                    trigger(target, "length")
                 }
             }
             return res
@@ -70,14 +71,12 @@ export function reactive(target: unknown): any {
     return proxy
 }
 
-interface proxyTarget {
-    __isReactive?: Boolean
-}
+
 /**
  * 通过读取被代理对象上__isReactive这个特殊的属性名，判断是否已经是被代理过
  * 如果是Vue2中，会把这个属性值真实地写入到对象上
  * 但我们拦截了get操作，即使不写入到对象上，在拦截到该属性读取的时候返回true即可
  */
-export function isProxy(target: proxyTarget): Boolean {
+export function isProxy(target: IProxyTarget): Boolean {
     return target && Boolean(target.__isReactive);
 }

@@ -1,12 +1,14 @@
+import { Options,effectFn } from './types'
 let activeEffect: Function | null; // 一个全局临时变量，用来存储当前调用的effect函数。每次调用effect函数，都会把自身赋值到这个变量，这样在Proxy对象的get()方法中就可以根据这个值是否为空，来判断是不是由effect函数触发的读取行为，进而决定是否需要进行依赖收集。
 let effectStack: Function[] = []; // 当effect函数里又嵌套了effect函数时, 有可能出现里层的effect函数赋值到activeEffect并执行完毕以后, 清除了activeEffect的值, 导致外层函数读取Proxy值时无法被作为依赖收集的情况, 需要一个栈存储所有的effect函数
+
 
 /**
  * effect接收一个函数参数，我们称这个参数为副作用函数。
  * 副作用函数在被传入时会立即执行一次，在这个过程中中如果读取了某个Proxy对象的属性值，那么副作用函数自身将被收集到该属性的依赖数组中。
  * 之后在每次该属性值数据发生变化时，都会重新执行其依赖数组的所有副作用函数，因此此函数将被重新触发。
  */
-export function effect(fn: Function) {
+export function effect(fn: Function, options: Options) {
     const effectFn = () => {
         // 使用try finally包裹，保证无论执行结果如何，最后都要清理掉全局的activeEffect变量
         try {
@@ -21,7 +23,10 @@ export function effect(fn: Function) {
             activeEffect = effectStack[effectStack.length - 1] ?? null
         }
     }
-    effectFn();
+    // 正常情况下effect会立即执行一次，但预留一个Options对象，如果lazy属性为true，那首次不执行
+    !options.lazy && effectFn()
+    // 如果传入了自定义调度器，那就挂在到effectFn下，trigger执行时会检测是否有自定义调度器
+    options.scheduler && (effectFn.scheduler = options.scheduler)
     return effectFn;
 }
 
@@ -64,6 +69,8 @@ export function track(target: Object, key: String | Symbol) {
 
     // 把这次所使用的effect函数存到该属性值的set数组去即可
     deps.add(activeEffect);
+    // console.log('追加依赖', '依赖数组：', deps, '目标值：', target, '属性名：', key, 'Proxy对象map：', depsMap);
+
 }
 
 /**
@@ -72,12 +79,25 @@ export function track(target: Object, key: String | Symbol) {
 export function trigger(target: Object, key: String | Symbol | number) {
     // 同理，先从proxyObjectRecordMap中取出某个Proxy对象的记录
     const depsMap = proxyObjectRecordMap.get(target);
+    // console.log(depsMap, '取出proxymap');
+
     if (!depsMap) return;
 
     // 再从Proxy对象的记录中取出某个属性值的记录
     const deps = depsMap.get(key)
+    // console.log(deps,key, '取出属性值map');
+
     if (!deps) return
 
-    // 遍历这个数组执行即可
-    deps.forEach((fn: Function) => fn())
+
+    // 遍历这个数组的函数执行即可
+    deps.forEach((effectFn: effectFn) => {
+
+        // 如果有自定义调度器，那就执行自定义调度器（详见Computed）
+        if (effectFn.scheduler) {
+            effectFn.scheduler()
+        } else {
+            effectFn()
+        }
+    })
 }

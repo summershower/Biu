@@ -12,22 +12,6 @@ var BiuReactivity = (() => {
 
   // packages/reactivity/src/effect.ts
   var activeEffect;
-  var effectStack = [];
-  function effect(fn) {
-    const effectFn = () => {
-      var _a;
-      try {
-        activeEffect = effectFn;
-        effectStack.push(effectFn);
-        return fn();
-      } finally {
-        effectStack.pop();
-        activeEffect = (_a = effectStack[effectStack.length - 1]) != null ? _a : null;
-      }
-    };
-    effectFn();
-    return effectFn;
-  }
   var proxyObjectRecordMap = /* @__PURE__ */ new WeakMap();
   function track(target, key) {
     if (!activeEffect)
@@ -49,7 +33,13 @@ var BiuReactivity = (() => {
     const deps = depsMap.get(key);
     if (!deps)
       return;
-    deps.forEach((fn) => fn());
+    deps.forEach((effectFn) => {
+      if (effectFn.scheduler) {
+        effectFn.scheduler();
+      } else {
+        effectFn();
+      }
+    });
   }
 
   // packages/reactivity/src/reactive.ts
@@ -76,7 +66,7 @@ var BiuReactivity = (() => {
         if (hasChange(oldValue, target2[key])) {
           trigger(target2, key);
           if (isArray(target2) && target2.length !== oldLength) {
-            trigger(target2, length);
+            trigger(target2, "length");
           }
         }
         return res;
@@ -89,18 +79,40 @@ var BiuReactivity = (() => {
     return target && Boolean(target.__isReactive);
   }
 
+  // packages/reactivity/src/ref.ts
+  function ref(target) {
+    if (isRef(target))
+      return target;
+    return new RefImpl(target);
+  }
+  function isRef(target) {
+    return !!(target && target.__isRef);
+  }
+  var RefImpl = class {
+    constructor(target) {
+      this.__isRef = true;
+      this.__value = convert(target);
+    }
+    get value() {
+      track(this, "value");
+      return this.__value;
+    }
+    set value(newValue) {
+      if (hasChange(this.__value, newValue)) {
+        this.__value = convert(newValue);
+        trigger(this, "value");
+      }
+    }
+  };
+  function convert(target) {
+    return isObject(convert) ? reactive(target) : target;
+  }
+
   // packages/reactivity/src/index.ts
   var b = window;
-  var a = reactive({
-    a: 123,
-    b: 777
-  });
+  var a = reactive([1, 2, 3]);
+  var c = ref(5);
   b.a = a;
-  effect(() => {
-    effect(() => {
-      console.log("\u91CC\u5C42", b.a.b);
-    });
-    console.log("\u5916\u5C42", b.a.a);
-  });
+  b.c = c;
 })();
 //# sourceMappingURL=reactivity.js.map
