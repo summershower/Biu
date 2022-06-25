@@ -1,15 +1,19 @@
 import { reactive } from './reactive'
 import { ref } from './ref'
 import { effect } from './effect'
+import { computed } from './computed'
 
 
-const b = window as any;
-const a = reactive([1, 2, 3]);
-const c = ref(5)
-b.a = a;
-b.c = c;
+const tempWindow = window as any
+const num = (tempWindow.b = ref(0))
 
 
-// effect(() => {
-//     console.log(b.c.value);
-// })
+tempWindow.a = computed({
+    get() {
+        return num.value
+    },
+    set(newValue:any) {
+        console.log('你的下一句话是：', newValue)
+        num.value = newValue
+    }
+})

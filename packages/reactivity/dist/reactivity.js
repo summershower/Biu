@@ -6,12 +6,32 @@ var BiuReactivity = (() => {
   function isArray(target) {
     return Array.isArray(target);
   }
+  function isFunction(target) {
+    return typeof target === "function";
+  }
   function hasChange(oldValue, newValue) {
     return oldValue !== newValue && !(Number.isNaN(oldValue) && Number.isNaN(newValue));
   }
 
   // packages/reactivity/src/effect.ts
   var activeEffect;
+  var effectStack = [];
+  function effect(fn, options) {
+    const effectFn = () => {
+      var _a;
+      try {
+        activeEffect = effectFn;
+        effectStack.push(effectFn);
+        return fn();
+      } finally {
+        effectStack.pop();
+        activeEffect = (_a = effectStack[effectStack.length - 1]) != null ? _a : null;
+      }
+    };
+    !options.lazy && effectFn();
+    options.scheduler && (effectFn.scheduler = options.scheduler);
+    return effectFn;
+  }
   var proxyObjectRecordMap = /* @__PURE__ */ new WeakMap();
   function track(target, key) {
     if (!activeEffect)
@@ -108,11 +128,57 @@ var BiuReactivity = (() => {
     return isObject(convert) ? reactive(target) : target;
   }
 
+  // packages/reactivity/src/computed.ts
+  function computed(getterOrOptions) {
+    let getter, setter;
+    if (isFunction(getterOrOptions)) {
+      getter = getterOrOptions;
+      setter = () => console.warn("Readonly Computed");
+    } else {
+      ({ get: getter = () => {
+      }, set: setter = () => {
+      } } = getterOrOptions);
+    }
+    return new ComputedImpl(getter, setter);
+  }
+  var ComputedImpl = class {
+    constructor(getter, setter) {
+      this.__dirty = true;
+      setter && (this.__setter = setter);
+      this.__effect = effect(getter, {
+        lazy: true,
+        scheduler: () => {
+          if (!this.__dirty) {
+            this.__dirty = true;
+            trigger(this, "value");
+          }
+        }
+      });
+    }
+    get value() {
+      if (this.__dirty) {
+        this.__dirty = false;
+        this.__value = this.__effect();
+        track(this, "value");
+      }
+      return this.__value;
+    }
+    set value(newValue) {
+      this.__setter && this.__setter(newValue);
+    }
+  };
+
   // packages/reactivity/src/index.ts
-  var b = window;
-  var a = reactive([1, 2, 3]);
-  var c = ref(5);
-  b.a = a;
-  b.c = c;
+  var tempWindow = window;
+  var num = tempWindow.b = ref(0);
+  tempWindow.a = computed({
+    get() {
+      return num.value;
+    },
+    set(newValue) {
+      console.log("\u4F60\u7684\u4E0B\u4E00\u53E5\u8BDD\u662F\uFF1A", newValue);
+      num.value = newValue;
+    }
+  });
 })();
 //# sourceMappingURL=reactivity.js.map

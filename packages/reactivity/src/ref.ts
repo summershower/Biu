@@ -1,9 +1,10 @@
 import { isObject, hasChange } from '@Biu/utils'
 import { reactive } from './reactive';
 import { track, trigger } from './effect'
-export function ref(target: unknown) {
+import { Ref } from './types'
+export function ref(target: unknown): Ref {
     // 已经是Ref同样返回原值
-    if (isRef(target)) return target;
+    if (isRef(target)) return (target as Ref);
     return new RefImpl(target)
 }
 

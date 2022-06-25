@@ -1,0 +1,13 @@
+{
+  "name": "@Biu/runtime",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "buildOptions": {
+    "name": "BiuRuntime",
+    "formats": [
+      "cjs",
+      "esm-bundler"
+    ]
+  }
+}
