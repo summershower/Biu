@@ -135,9 +135,7 @@ var BiuReactivity = (() => {
       getter = getterOrOptions;
       setter = () => console.warn("Readonly Computed");
     } else {
-      ({ get: getter = () => {
-      }, set: setter = () => {
-      } } = getterOrOptions);
+      ({ get: getter = () => console.warn("Not define Getter"), set: setter = () => console.warn("Not define Setter") } = getterOrOptions);
     }
     return new ComputedImpl(getter, setter);
   }

@@ -18,10 +18,15 @@ export enum ShapeFlags {
 export const Text = Symbol('Text')
 export const Fragment = Symbol('Fragment')
 
+/**
+ * h函数，即“createVNode”函数，创建一个虚拟DOM。
+ * 配合render函数，可以将虚拟DOM生成真实DOM。
+ */
 export function h(type: Type, props: Props, children: Children): VNode {
     let shapeFlag: number;
-    // 先判断需要生成的元素类型
+    // 先判断需要生成的父元素类型
     if (isString(type)) {
+        // 因为Text和Fragment都用Symbol作了标记，如果type是普通字符串，直接当元素处理，
         shapeFlag = ShapeFlags.ELEMENT
     } else if (type === Text) {
         shapeFlag = ShapeFlags.TEXT
@@ -32,9 +37,11 @@ export function h(type: Type, props: Props, children: Children): VNode {
         shapeFlag = ShapeFlags.COMPONENT
     }
 
+    // 再判断子元素类型
     if (isString(children) || isNumber(children)) {
-        // 或等运算
+        // 或等运算，将shapeFlag叠上父元素类型
         shapeFlag |= ShapeFlags.TEXT_CHILDREN
+        isNumber(children) && (children = (<Number>children).toString())
     } else if (isArray(children)) {
         shapeFlag |= ShapeFlags.ARRAY_CHILDREN
     }
@@ -42,7 +49,7 @@ export function h(type: Type, props: Props, children: Children): VNode {
         type,
         props,
         children,
-        shapeFlag: 123
+        shapeFlag
     }
 
 }

@@ -13,7 +13,7 @@ export function computed(getterOrOptions: Function | ComputedOptions) {
         getter = <Function>getterOrOptions
         setter = () => console.warn('Readonly Computed')
     } else {
-        ({ get: getter = () => { }, set: setter = () => { } } = <ComputedOptions>getterOrOptions)
+        ({ get: getter = () => console.warn('Not define Getter') , set: setter = () =>  console.warn('Not define Setter')  } = <ComputedOptions>getterOrOptions)
     }
     return new ComputedImpl(getter, setter)
 }
