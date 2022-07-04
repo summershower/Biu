@@ -22,7 +22,7 @@ export const Fragment = Symbol('Fragment')
  * h函数，即“createVNode”函数，创建一个虚拟DOM。
  * 配合render函数，可以将虚拟DOM生成真实DOM。
  */
-export function h(type: Type, props: Props, children: Children): VNode {
+export function h(type: Type, props?: Props, children?: Children): VNode {
     let shapeFlag: number;
     // 先判断需要生成的父元素类型
     if (isString(type)) {

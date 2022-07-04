@@ -6,11 +6,9 @@ export type CSSStyleName = keyof Omit<CSSStyleDeclaration, 'length' | 'parentRul
 
 export type EventName = keyof HTMLElementTagNameMap
 export type Props = {
-    class?: string,
-    style?: Record<CSSStyleName, string>,
     [x: string]: any
 } | null
-export type Children = string | Number | [] | null
+export type Children = string | Number | VNode[] | null
 
 export interface VNode {
     type: Type,
@@ -19,4 +17,6 @@ export interface VNode {
     shapeFlag: number
 }
 
-export type Container = HTMLElement 
+export interface Container extends HTMLElement {
+    [key: string]: any
+}

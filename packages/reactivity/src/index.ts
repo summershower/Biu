@@ -13,7 +13,7 @@ tempWindow.a = computed({
         return num.value
     },
     set(newValue:any) {
-        console.log('你的下一句话是：', newValue)
+        console.log('Next', newValue)
         num.value = newValue
     }
 })
