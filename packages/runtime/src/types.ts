@@ -14,7 +14,8 @@ export interface VNode {
     type: Type,
     props?: Props,
     children?: Children,
-    shapeFlag: number
+    shapeFlag: number,
+    el: HTMLElement | Text | null
 }
 
 export interface Container extends HTMLElement {

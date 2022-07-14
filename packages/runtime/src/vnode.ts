@@ -49,7 +49,8 @@ export function h(type: Type, props?: Props, children?: Children): VNode {
         type,
         props,
         children,
-        shapeFlag
+        shapeFlag,
+        el: null
     }
 
 }
